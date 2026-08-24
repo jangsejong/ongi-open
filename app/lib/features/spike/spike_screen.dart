@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import '../../ai/device_gate.dart';
 import '../../core/config.dart';
 import '../../native/ongi_native.g.dart';
 
@@ -46,17 +47,40 @@ class _SpikeScreenState extends State<SpikeScreen> {
     const s = '기기';
     _clear(s);
     final info = await DeviceInfoPlugin().androidInfo;
-    final mem = await _stats.getMemoryInfo();
+    // 판단 근거는 프로덕션 게이트와 같은 경로(네이티브 ActivityManager 1순위)로
+    // 수집한다. 플러그인 isLowRamDevice는 이름과 달리 '그 순간의 메모리 압박'
+    // (MemoryInfo.lowMemory)이라 참고용으로만 남긴다 — device_gate.dart 참조.
+    final gate = DeviceGate(statsApi: _stats);
+    Map<String, Object?> native;
+    try {
+      final mem = await _stats.getMemoryInfo();
+      native = {
+        'nativeTotalMemMb': mem.totalMemMb,
+        'nativeAvailMemMb': mem.availMemMb,
+        'appPssMb': mem.appPssMb,
+        'isLowRamDevice': mem.lowRamDevice, // am.isLowRamDevice — 기기 고정 속성
+      };
+    } catch (e) {
+      // 네이티브 실패 시 게이트는 RAM 임계만으로 판정한다 — 결과 해석도 동일하게.
+      native = {'nativeError': '$e'};
+    }
+    // 앱이 실제로 택할 등급 + crash 플래그 잔존 여부 — #324(Mali 프리즈) 재현
+    // 판정의 직접 증거. release 빌드에선 run-as로 파일을 볼 수 없어 여기 담는다.
+    final tier = await gate.resolveTier();
     final data = {
       'model': '${info.manufacturer} ${info.model}',
       'sdkInt': info.version.sdkInt,
       'abis': info.supportedAbis,
-      'physicalRamMb': info.physicalRamSize,
-      'availableRamMb': info.availableRamSize,
-      'isLowRamDevice': info.isLowRamDevice,
-      'nativeTotalMemMb': mem.totalMemMb,
-      'nativeAvailMemMb': mem.availMemMb,
-      'appPssMb': mem.appPssMb,
+      ...native,
+      'tier': tier.name,
+      'crashFlags': {
+        'gpu': await (await gate.crashFlagFile(LlmTier.gpu)).exists(),
+        'cpu': await (await gate.crashFlagFile(LlmTier.cpu)).exists(),
+      },
+      // 플러그인 원시값(교차검증 참고용 — 임계 조정 근거로 쓰지 않는다)
+      'pluginPhysicalRamMb': info.physicalRamSize,
+      'pluginAvailableRamMb': info.availableRamSize,
+      'pluginLowMemoryNow': info.isLowRamDevice, // 순간 압박값(이름과 다름)
     };
     _results['device'] = data;
     data.forEach((k, v) => _log(s, '$k: $v'));
