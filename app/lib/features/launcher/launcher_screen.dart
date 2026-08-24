@@ -18,6 +18,7 @@ import '../routine/routine_phrase.dart';
 import '../routine/usage_permission_screen.dart';
 import '../routine/usage_repository.dart';
 import '../settings/settings_screen.dart';
+import '../spike/spike_screen.dart';
 import '../voice/voice_controller.dart';
 import '../voice/voice_screen.dart';
 import 'category_apps_screen.dart';
@@ -278,6 +279,18 @@ class _LauncherScreenState extends State<LauncherScreen> {
       appBar: AppBar(
         title: const Text('온기'),
         actions: [
+          // W1 계측 진입 — 측정 빌드(--dart-define=SPIKE=true)에만 존재.
+          // 상수 false면 SpikeScreen까지 트리셰이킹돼 데모/제출 빌드 바이너리가
+          // 불변이다. v0.0.20에서 이 아이콘을 무게이트 삭제해 스파이크가 고아
+          // 코드가 됐고(릴리스에 미포함 → docs/20 측정 불가), v0.0.34에서 복원.
+          if (const bool.fromEnvironment('SPIKE'))
+            IconButton(
+              icon: const Icon(Icons.science_outlined),
+              tooltip: 'W1 스파이크',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SpikeScreen()),
+              ),
+            ),
           // 아이콘 단독 버튼은 시니어가 기능을 유추하기 어렵다(GC1·toss①)
           // — 텍스트를 병기하고 액션은 설정 하나만 남긴다(IC1). 앱 정리는
           // 설정 화면 안의 텍스트 메뉴로 이관.

@@ -5,10 +5,11 @@
 
 ## 준비
 
-1. APK: `dist/ongi-w1-spike-v0.0.32.apk` (arm64-v8a 전용, 138.1MB, sha256 앞자리 62ea75102cb819f1 — `dist/`는 비커밋, 아래 재빌드 명령으로 생성)
+1. APK: `dist/ongi-w1-spike-v0.0.34.apk` (arm64-v8a 전용, 138.2MB, sha256 앞자리 37c3f9dbe1b207cb — `dist/`는 비커밋, 아래 재빌드 명령으로 생성)
    - Windows 탐색기(WSL 빌드 시): `\\wsl$\<배포판>\<저장소 경로>\dist\`
-   - 전송: 카카오톡 나에게 보내기 / USB / `adb install ongi-w1-spike-v0.0.32.apk`
-   - 설치 시 "출처를 알 수 없는 앱" 허용 필요. 재빌드: `cd app && flutter build apk --release --target-platform android-arm64`
+   - 전송: 카카오톡 나에게 보내기 / USB / `adb install ongi-w1-spike-v0.0.34.apk`
+   - 설치 시 "출처를 알 수 없는 앱" 허용 필요. 재빌드: `cd app && flutter build apk --release --target-platform android-arm64 --dart-define=SPIKE=true`
+   - ★**`--dart-define=SPIKE=true` 없이 빌드하면 🧪 계측 진입 자체가 빌드에서 빠진다**(v0.0.34 게이트 — 데모/제출 빌드에서 계측 화면을 제외하기 위함)
 2. 권장 측정 기기: RAM 등급별 3대 (예: 4GB Galaxy A16 / 6GB A35 / 8GB+ S23 이상)
    — 1대만 있어도 해당 등급 결과는 유효
 3. Wi-Fi 연결 상태에서 시작 (모델 2.6GB 다운로드)
@@ -17,7 +18,7 @@
 
 | 순서 | 버튼 | 관찰 포인트 | 확정할 설계 항목 |
 |---|---|---|---|
-| 1 | **기기 정보** | RAM·ABI 확인 + `tier`(실산출 등급)·`crashFlags`·네이티브 `isLowRamDevice` (v0.0.32~) | RAM 게이팅 등급 분류 |
+| 1 | **기기 정보** | RAM·ABI 확인 + `tier`(실산출 등급)·`crashFlags`·네이티브 `isLowRamDevice` (v0.0.34 APK~) | RAM 게이팅 등급 분류 |
 | 2 | **앱 스캔 E2E** | 개수·소요 ms (QUERY_ALL_PACKAGES 없이 전체 앱이 나오는가) | §3 ① 스캔 방식 검증 |
 | 3 | **STT ① 초기화** | initialize 성공, ko 로케일 존재 | — |
 | 4 | **STT ② 일반 인식** | 짧은 문장("카카오톡 열어줘") 말하고 침묵 → `무음 컷오프 ms` 로그 확인. 2~3회 반복 | §6 무음 컷오프 실측 |
@@ -31,7 +32,7 @@
 
 ### 주의
 
-- (v0.0.32~) 결과 JSON의 `isLowRamDevice`는 **네이티브 고정 속성**(판단 근거)이고 `pluginLowMemoryNow`는 순간 압박 참고값이다 — 키 구성이 다른 v0.0.6 APK 결과와 섞지 말 것.
+- (v0.0.34 APK~) 결과 JSON의 `isLowRamDevice`는 **네이티브 고정 속성**(판단 근거)이고 `pluginLowMemoryNow`는 순간 압박 참고값이다 — 키 구성이 다른 구버전 APK(v0.0.6 등) 결과와 섞지 말 것.
 - 10번에서 프리즈·강제 종료가 나면 **앱 재실행 → ① 기기 정보 재실행**으로 `crashFlags` 잔존과 `tier` 강등 여부를 JSON에 남길 것 — #324(Mali)·Exynos GPU 판정의 직접 증거다.
 - 8번 다운로드 중 앱을 끄지 말 것(첫 측정은 순수 조건으로). 실패해도 로그의 `failedAtSec`이 곧 데이터.
 - 10번에서 앱이 강제 종료되면 그것도 결과(OOM) — 기기 RAM과 함께 기록.

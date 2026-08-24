@@ -3,7 +3,7 @@ description: 온기(ONGI) — 디지털 취약계층을 위한 온디바이스 A
 publish_to: "none"
 # dist 파일명(vX.Y.Z)과 일치시키고, versionCode(+N)는 릴리스마다 증가시켜
 # 기기에서 덮어 설치(업그레이드)가 되게 한다.
-version: 0.0.30+30
+version: 0.0.34+34
 
 environment:
   sdk: ^3.5.0
