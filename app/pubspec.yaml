@@ -1,0 +1,37 @@
+name: ongi
+description: 온기(ONGI) — 디지털 취약계층을 위한 온디바이스 AI 스마트폰 접근성 도우미
+publish_to: "none"
+# dist 파일명(vX.Y.Z)과 일치시키고, versionCode(+N)는 릴리스마다 증가시켜
+# 기기에서 덮어 설치(업그레이드)가 되게 한다.
+version: 0.0.30+30
+
+environment:
+  sdk: ^3.5.0
+
+# 버전은 pub.dev 실확인(2026-07-10). flutter_lints만 미확인 — pub get 시 최신 확인.
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_gemma: ^1.2.2 # 온디바이스 LLM 코어 (MIT)
+  flutter_gemma_litertlm: ^1.0.2 # .litertlm 엔진 — Gemma 4 E2B (MIT)
+  speech_to_text: ^7.4.0 # 음성 명령 입력 (BSD-3-Clause)
+  flutter_tts: ^4.2.5 # 음성 안내 출력 (MIT)
+  sqflite: ^2.4.3 # 로컬 DB — 앱 인벤토리·사용 패턴 (BSD-2-Clause)
+  device_info_plus: ^13.2.0 # RAM 게이팅·기기 정보 (BSD-3-Clause)
+  path_provider: ^2.1.0 # 모델 파일 경로 (BSD-3-Clause)
+  crypto: ^3.0.3 # 모델 sha256 검증 (BSD-3-Clause)
+  # 보호자 통화 코칭(v1.2 — docs/50_guardian_coaching.md). 라이선스 pub.dev 실확인.
+  local_auth: ^3.0.2 # 등록 변경 보호(사전 A′·ADR-21) — 생체/잠금 자격증명 (BSD-3-Clause)
+  flutter_webrtc: ^1.5.2 # 보기 전용 화면 공유 송출 (MIT)
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  pigeon: ^27.0.0 # 타입세이프 네이티브 브리지 코드젠
+  # device_gate 테스트의 path_provider 페이크용 (이미 transitive — 명시 선언)
+  path_provider_platform_interface: ^2.1.0
+  plugin_platform_interface: ^2.1.0
+
+flutter:
+  uses-material-design: true

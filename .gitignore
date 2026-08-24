@@ -1,0 +1,23 @@
+# Python (문서 빌드용)
+.venv/
+__pycache__/
+.ruff_cache/
+
+# 데이터·모델
+data/**
+!data/**/.gitkeep
+models/**
+!models/MANIFEST.sha256
+
+# 산출물·환경
+dist/
+outputs/
+.env
+
+# 대회 제3자 저작물 — 공개 전환 시 저작권 문제로 커밋 금지
+2026오픈소스개발자대회운영규정.pdf
+*.hwp
+
+# Flutter (app/ 생성 후)
+app/build/
+app/.dart_tool/

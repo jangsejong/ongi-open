@@ -1,0 +1,115 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 모델 다운로드(HF) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 음성 명령(STT) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- 대용량 다운로드 foreground 서비스 (기획설계서 §4.3, flutter_gemma README 요구) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <!-- 다운로드 사전 체크(Wi-Fi 여부) — 일반 권한, 런타임 요청 불필요 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- AlarmClock 인텐트(ACTION_SHOW_ALARMS) 요구 권한 — 일반 권한, 자동 부여 -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
+    <!-- 사용 패턴 학습(§5) — 특수 권한: 설정 토글에서 사용자가 직접 허용, 요청 전 전체화면 고지 필수 -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions"/>
+    <!-- 미사용 앱 정리 — ACTION_DELETE(시스템 확인 다이얼로그) 요구 일반 권한 -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES"/>
+
+    <!-- 보호자 통화 코칭(docs/50_guardian_coaching.md §10) — 보기 전용 화면 공유.
+         Android 14+는 mediaProjection 타입 FGS가 떠 있어야 MediaProjection 획득이
+         가능하다. 캡처 세션마다 OS가 동의 다이얼로그를 강제하므로 "그 순간만"은
+         플랫폼이 보증한다(ADR-15).
+         ★ BIND_ACCESSIBILITY_SERVICE·BIND_DEVICE_ADMIN·QUERY_ALL_PACKAGES는
+         계속 선언하지 않는다 — 원격 조작·기기 정책 통제를 하지 않기 때문(ADR-10/15/16). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/>
+
+    <!-- flutter_webrtc가 매니페스트 머지로 자동 주입하는 권한 중 온기가 쓰지 않는 것을
+         되돌린다(ADR-3·ADR-6의 "플러그인 권한 주입" 규율을 새 의존성에도 적용).
+         · RECEIVE_BOOT_COMPLETED — 부팅 시 자동 실행하지 않는다. 세션이 끊기면 공유도
+           끝나야 하므로 서비스를 되살리지 않는 설계(START_NOT_STICKY)와도 어긋난다.
+         · BLUETOOTH — 통화는 PSTN으로 따로 가고(ADR-18) 화면 공유는 audio:false라
+           블루투스 오디오 경로를 쓰지 않는다.
+         제거 후 Play Data safety 신고 대상이 줄어든다. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"
+        tools:node="remove"/>
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        tools:node="remove"/>
+
+    <application
+        android:label="온기"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+
+        <!-- Android 14+(API 34) foreground 다운로드 필수 override -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+
+        <!-- 화면 공유 상시 알림 + Android 14+ MediaProjection 전제 서비스.
+             exported=false — 외부에서 시작시킬 수 없다(세션은 어르신 기기에서만 열린다, ADR-17). -->
+        <service
+            android:name=".ShareForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+        <!-- LLM GPU 백엔드(OpenCL) — 미선언 시 WebGPU 폴백으로 일부 Mali 기기 프리즈 (#324) -->
+        <uses-native-library android:name="libvndksupport.so" android:required="false"/>
+        <uses-native-library android:name="libOpenCL.so" android:required="false"/>
+        <uses-native-library android:name="libOpenCL-car.so" android:required="false"/>
+        <uses-native-library android:name="libOpenCL-pixel.so" android:required="false"/>
+
+        <!-- 세로 고정: 가로 회전 시 2×3 격자·비스크롤 화면이 깨지고 의도치 않은
+             회전이 고령자 혼란을 유발(시니어 UI/UX docs/40 §4). Android 16+
+             대화면(600dp+)은 시스템이 이 제한을 무시할 수 있음. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:screenOrientation="portrait"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- 기본 런처(ROLE_HOME) 전환은 M1 이후 opt-in — HOME 카테고리는 아직 추가하지 않음 (ADR-1) -->
+        </activity>
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+
+    <!-- 패키지 가시성 — QUERY_ALL_PACKAGES 선언 금지 (기획설계서 §5, ADR-3) -->
+    <queries>
+        <!-- 앱 스캔: 앱서랍에 보이는 모든 앱 (런처 액티비티 보유 앱) -->
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent>
+        <!-- STT (speech_to_text, SDK 30+ 필수) -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+        <!-- TTS 엔진 조회 (flutter_tts) -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
+        <!-- Flutter 엔진 기본 (ProcessTextPlugin) -->
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
+</manifest>
